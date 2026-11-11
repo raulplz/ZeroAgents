@@ -1,0 +1,14 @@
+# Entorno y cachés
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Notas privadas de desarrollo
+NOTAS_DESARROLLO.md
+
+*.swp
+.DS_Store

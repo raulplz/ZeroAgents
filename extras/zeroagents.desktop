@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=ZeroAgents
+GenericName=Equipos de agentes
+Comment=Crea y sigue equipos de agentes de Claude Code (modo Work)
+Exec=xdg-terminal-exec --app-id=ZeroAgents --title=ZeroAgents -- zeroagents --work
+Icon=utilities-system-monitor
+Terminal=false
+Categories=Development;
+Keywords=agentes;claude;equipo;work;
+StartupNotify=true
