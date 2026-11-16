@@ -106,6 +106,10 @@ def ingest_hook(data: dict, notify: bool = True) -> None:
         return
     ev = event_from_hook(data)
     store.append_event(platform_dir(PLATFORM) / f"{sid}.events.jsonl", ev)
+    if ev["e"] in ("PreToolUse", "PostToolUse", "SubagentStop"):
+        from zeroagents import messages
+
+        messages.ingest(data)
     if notify and ev["e"] == "Notification" and ev.get("nt") in NOTIFY_TYPES:
         from zeroagents.notify import send
 

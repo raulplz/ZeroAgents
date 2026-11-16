@@ -96,6 +96,41 @@ def cmd_list(args) -> int:
     return 0
 
 
+def cmd_messages(args) -> int:
+    import time
+    from pathlib import Path
+
+    from zeroagents import messages as M
+
+    project = None
+    if args.dir:
+        project = Path(args.dir).expanduser().resolve()
+    elif not args.all_sessions and (Path.cwd() / M.PROJECT_LOG).exists():
+        project = Path.cwd()
+
+    def paths():
+        return M.sources(project, args.session)
+
+    color = M.use_color() and not args.md and not args.json
+    if args.follow:
+        where = f"{project / M.PROJECT_LOG}" if project else "todas las sesiones"
+        print(f"Mensajes entre agentes en vivo ({where}). Ctrl+C para salir.", flush=True)
+        M.follow(paths, full=args.full, color=color)
+        return 0
+    since = None if project or args.hours <= 0 else time.time() - args.hours * 3600
+    msgs = M.load(paths(), since)
+    if args.json:
+        for m in msgs:
+            print(json.dumps(m, ensure_ascii=False))
+    elif args.md:
+        print(M.to_markdown(msgs))
+    elif not msgs:
+        print("No hay mensajes entre agentes todavía.")
+    else:
+        print("\n\n".join(M.format_message(m, full=args.full, color=color) for m in msgs))
+    return 0
+
+
 def cmd_install(args) -> int:
     from zeroagents.install import install
 
@@ -322,6 +357,18 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--json", action="store_true")
     p.add_argument("--all", action="store_true", help="incluye sesiones cerradas en las últimas 24 h")
     p.set_defaults(func=cmd_list)
+
+    p = sub.add_parser("messages", aliases=["mensajes"],
+                       help="encargos, entregas y mensajes entre agentes (-f para verlos en vivo)")
+    p.add_argument("dir", nargs="?", help="proyecto con .zeroagents/ (por defecto, la carpeta actual si lo tiene)")
+    p.add_argument("-f", "--follow", action="store_true", help="mostrar los nuevos según llegan")
+    p.add_argument("--full", action="store_true", help="textos completos")
+    p.add_argument("--md", action="store_true", help="en Markdown, para el registro de un proyecto")
+    p.add_argument("--json", action="store_true", help="una línea JSON por mensaje")
+    p.add_argument("--session", help="solo esta sesión (id o prefijo)")
+    p.add_argument("--all-sessions", action="store_true", help="ignorar el registro del proyecto actual")
+    p.add_argument("--hours", type=float, default=24, help="sin proyecto, últimas N horas (0 = todo)")
+    p.set_defaults(func=cmd_messages)
 
     p = sub.add_parser("hook", help="(lo usa Claude Code) registra un evento de hook")
     p.add_argument("platform", choices=["claude-code"])

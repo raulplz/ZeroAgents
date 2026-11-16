@@ -61,6 +61,7 @@ Abre **ZeroAgents** desde el lanzador de aplicaciones, que arranca ya en el modo
 |---|---|
 | `f` | Ir a la ventana del Product Owner (cuando sale el aviso rojo «te necesita») |
 | `p` | Ver el plan (`docs/PLAN.md`) dentro de la app |
+| `m` | Ver en vivo los **mensajes entre agentes**: cada encargo del líder y cada entrega (`c` alterna los textos completos) |
 | `o` | Abrir la carpeta del proyecto en VS Code, para ver los archivos que crea el equipo |
 | `Tab` | Cambiar entre las tablas (proyectos, equipo y tareas) |
 | `↑` `↓` / `j` `k` | Moverse por la tabla |
@@ -77,6 +78,7 @@ zeroagents work new "Una app de notas en Python con SQLite y tests" -d ~/Work/PR
 zeroagents work start ~/Work/PROYECTOS/notas --permission-mode acceptEdits
 zeroagents work show ~/Work/PROYECTOS/notas   # equipo, tareas y progreso en texto
 zeroagents work list                          # todos los proyectos
+zeroagents messages -f ~/Work/PROYECTOS/notas # mensajes entre agentes en vivo
 ```
 
 - **Opciones de `work new`:** `--models haiku,sonnet` limita los modelos del equipo, y `--architect-model sonnet --architect-effort medium` hace el diseño más barato.
@@ -116,6 +118,32 @@ Escribe `/exit` en la ventana del Product Owner o ciérrala, y el equipo se deti
 - Los permisos que piden los compañeros aparecen en la sesión del líder.
 - Para escribir a un compañero concreto se hace desde Claude: en el modo integrado, flechas en el panel de agentes, Enter y escribir.
 - El arquitecto cuesta unos 0,2 $ con Sonnet a precio de lista (prueba del 10-11-2026). Con Opus, más.
+
+## Mensajes entre agentes
+
+ZeroAgents guarda cada mensaje que se pasan los agentes, con el texto íntegro, a partir de los mismos hooks que ya instala:
+
+| Tipo | Cuándo | De dónde sale |
+|---|---|---|
+| **ENCARGO** | El agente principal delega en un subagente | `PreToolUse` de `Agent`: `prompt`, `description` y `subagent_type` |
+| **ENTREGA** | El subagente termina | `PostToolUse` de `Agent` (primer plano), `SubagentStop` (segundo plano) o `SubagentHandback` (modo auto) |
+| **MENSAJE** | Un agente escribe a otro (equipos, otras sesiones) | `PreToolUse` de `SendMessage` |
+
+Los agentes internos de Claude Code (sugerencias de prompt, `/btw`) también disparan `SubagentStop`, así que solo se cuentan las entregas de subagentes lanzados antes en segundo plano.
+
+```bash
+zeroagents messages            # en un proyecto con .zeroagents/, su registro; si no, las últimas 24 h
+zeroagents messages -f         # en vivo (Ctrl+C para salir)
+zeroagents messages --full     # textos completos
+zeroagents messages --md > docs/registro_prompts.md   # registro en Markdown
+zeroagents messages --json     # una línea JSON por mensaje
+```
+
+Dónde se guardan:
+- `~/.local/state/zeroagents/claude-code/<sesión>.messages.jsonl`, como el resto del estado (se borra a los 7 días).
+- `.zeroagents/mensajes.jsonl` dentro del proyecto, si existe la carpeta `.zeroagents/` (los proyectos del modo Work la tienen; en otro proyecto basta con crearla). Ese archivo es permanente y sirve de evidencia de cómo trabajó el equipo.
+
+Cada texto se recorta a 50 000 caracteres.
 
 ## Instalación
 
@@ -161,14 +189,15 @@ ZEROAGENTS_STATE_DIR=/ruta/temporal zeroagents list   # probar sin mezclar estad
 
 ## Estado
 
-**v0.2** · 23 pruebas automáticas (`uv run pytest -q`).
+**v0.3** · 33 pruebas automáticas (`uv run pytest -q`).
 
 - **Monitor de sesiones:** adaptador de Claude Code, panel TUI, `list`/`--json`, notificaciones de escritorio, saltar a la ventana del agente (Hyprland) e `install`/`uninstall`/`doctor`.
+- **Mensajes entre agentes** (v0.3): encargos, entregas y mensajes con su texto íntegro, en vivo en el panel (`m`) y por terminal (`messages -f`), con registro permanente por proyecto.
 - **Modo Work:** arquitecto de equipos con salida validada por esquema, generación del proyecto (agentes con modelo y esfuerzo propios, plan, reglas y prompt del Product Owner), arranque del líder y panel de seguimiento.
 - **Probado:** el arquitecto genera equipos coherentes en 30-60 s, y Claude Code reconoce los agentes generados.
 - **Experimental:** los equipos de Claude Code lo son, y el formato interno de sus tareas no está documentado. El panel lo lee de forma tolerante y puede necesitar ajustes.
 
-**Próximo:** responder permisos desde el panel (hook `PermissionRequest`), historial de eventos del equipo (`TaskCreated`/`TaskCompleted`/`TeammateIdle`) y un adaptador para Codex.
+**Próximo:** responder permisos desde el panel (hook `PermissionRequest`), eventos de tareas del equipo (`TaskCreated`/`TaskCompleted`/`TeammateIdle`) y un adaptador para Codex.
 
 ## Licencia
 

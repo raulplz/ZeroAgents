@@ -1,6 +1,6 @@
 [project]
 name = "zeroagents"
-version = "0.2.0"
+version = "0.3.0"
 description = "Panel Frost para vigilar agentes de IA (Claude Code de momento): uso, modelo, esfuerzo, modo y si te necesitan."
 readme = "README.md"
 requires-python = ">=3.11"

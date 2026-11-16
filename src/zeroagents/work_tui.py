@@ -10,9 +10,10 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen, Screen
-from textual.widgets import Button, DataTable, Footer, Input, Label, Markdown, Select, Static, TextArea
+from textual.widgets import Button, DataTable, Footer, Input, Label, Markdown, RichLog, Select, Static, TextArea
 
 from zeroagents import fmt
+from zeroagents import messages as M
 from zeroagents.focus import focus_pid
 from zeroagents.model import Status
 from zeroagents.work import live
@@ -106,6 +107,59 @@ class PlanView(ModalScreen):
         self.dismiss()
 
 
+class MessagesView(ModalScreen):
+    """Encargos, entregas y mensajes del equipo, en vivo."""
+
+    BINDINGS = [Binding("escape,m,q", "close", "Cerrar"), Binding("c", "toggle_full", "Textos completos")]
+
+    def __init__(self, directory: Path, title: str) -> None:
+        super().__init__()
+        self.directory, self.title_text = directory, title
+        self.tail = M.store.JsonlTail(directory / M.PROJECT_LOG)
+        self.seen: list[dict] = []
+        self.full = False
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="msgbox"):
+            yield RichLog(id="msglog", wrap=True, markup=False, auto_scroll=True)
+        yield Footer()
+
+    def on_mount(self) -> None:
+        box = self.query_one("#msgbox")
+        box.border_title = f"mensajes entre agentes · {self.title_text}"
+        self.query_one("#msglog").focus()
+        self.poll()
+        self.set_interval(1.0, self.poll)
+
+    def _write(self, m: dict) -> None:
+        log = self.query_one("#msglog", RichLog)
+        log.write(Text.from_ansi(M.format_message(m, full=self.full, color=True, lines=8, hint="c para verlo entero")))
+        log.write(Text(""))
+
+    def poll(self) -> None:
+        new = self.tail.read_new()
+        log = self.query_one("#msglog", RichLog)
+        if not self.seen and not new:
+            if not log.lines:
+                log.write(Text("Aún no hay mensajes. Aparecerán aquí en cuanto el líder encargue algo a un agente.",
+                               style="dim"))
+            return
+        if not self.seen:
+            log.clear()
+        for m in sorted(new, key=lambda m: m.get("t", 0)):
+            self.seen.append(m)
+            self._write(m)
+
+    def action_toggle_full(self) -> None:
+        self.full = not self.full
+        self.query_one("#msglog", RichLog).clear()
+        for m in self.seen:
+            self._write(m)
+
+    def action_close(self) -> None:
+        self.dismiss()
+
+
 class WorkScreen(Screen):
     BINDINGS = [
         Binding("w,escape", "back", "Volver a sesiones"),
@@ -113,6 +167,7 @@ class WorkScreen(Screen):
         Binding("l", "launch", "Arrancar equipo"),
         Binding("f", "focus_lead", "Ir al Product Owner"),
         Binding("p", "show_plan", "Ver plan"),
+        Binding("m", "show_messages", "Mensajes"),
         Binding("o", "open_code", "Abrir en VS Code"),
         Binding("tab", "switch", "Cambiar tabla"),
         Binding("r", "refresh_data", "Refrescar"),
@@ -274,6 +329,11 @@ class WorkScreen(Screen):
             text = plan_md(v.data["plan"])
         self.app.push_screen(PlanView(text, v.name))
 
+    def action_show_messages(self) -> None:
+        v = self._selected()
+        if v:
+            self.app.push_screen(MessagesView(v.directory, v.name))
+
     def action_open_code(self) -> None:
         import shutil
         import subprocess
@@ -366,6 +426,10 @@ def css(c: dict) -> str:
     #planbox {{ width: 90%; height: 90%; padding: 0 1; border: round {c['accent']};
                border-title-color: {c['ice']}; background: {c['panel']}; overflow-y: auto; }}
     #plan {{ background: {c['panel']}; }}
+    MessagesView {{ align: center middle; }}
+    #msgbox {{ width: 90%; height: 90%; padding: 0 1; border: round {c['accent']};
+              border-title-color: {c['ice']}; background: {c['panel']}; }}
+    #msglog {{ background: {c['panel']}; }}
     #buttons {{ height: auto; margin-top: 1; align-horizontal: right; }}
     #buttons Button {{ margin-left: 2; }}
     """
