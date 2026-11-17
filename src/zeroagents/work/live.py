@@ -17,7 +17,8 @@ from pathlib import Path
 
 from zeroagents.model import Agent
 from zeroagents.paths import claude_dir, state_dir
-from zeroagents.store import read_json, write_snapshot
+from zeroagents import store
+from zeroagents.store import read_json
 from zeroagents.work import plan as P
 
 PENDING, RUNNING, DONE = "pendiente", "en curso", "hecha"
@@ -37,18 +38,41 @@ def _registry_path() -> Path:
     return path
 
 
+REGISTRY_VERSION = 1
+
+
+def _migrate_registry(data: dict) -> bool:
+    """v0 (sin `version`) → v1. Solo añade; no quita nada."""
+    if data.get("version", 0) >= REGISTRY_VERSION:
+        return False
+    data["version"] = REGISTRY_VERSION
+    data.setdefault("projects", [])
+    return True
+
+
 def register(directory: Path, name: str) -> None:
-    path = _registry_path()
-    items = [p for p in (read_json(path) or {}).get("projects", []) if p.get("dir") != str(directory)]
-    items.insert(0, {"dir": str(directory), "name": name, "added": time.time()})
-    write_snapshot(path, {"projects": items})
+    """Apunta el proyecto el primero de la lista. Lectura-modificación-escritura
+    bajo bloqueo: la GUI usa el mismo `projects.json.lock`. Conserva los campos
+    desconocidos, también los del propio proyecto si ya estaba."""
+    key = str(directory)
+
+    def change(data: dict) -> None:
+        items = data.get("projects")
+        items = items if isinstance(items, list) else []
+        previous = next((p for p in items if isinstance(p, dict) and p.get("dir") == key), {})
+        rest = [p for p in items if not (isinstance(p, dict) and p.get("dir") == key)]
+        data["projects"] = [{**previous, "dir": key, "name": name, "added": time.time()}, *rest]
+
+    store.update_json(_registry_path(), change, migrate=_migrate_registry, indent=2)
 
 
 def projects() -> list[Path]:
     """Proyectos registrados que siguen teniendo plan, del más reciente al más antiguo."""
     out = []
     for item in (read_json(_registry_path()) or {}).get("projects", []):
-        directory = Path(item.get("dir", ""))
+        if not isinstance(item, dict) or not isinstance(item.get("dir"), str):
+            continue
+        directory = Path(item["dir"])
         if (directory / P.PLAN_FILE).exists():
             out.append(directory)
     return out

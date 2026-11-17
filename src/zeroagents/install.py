@@ -15,6 +15,7 @@ import sys
 import time
 from pathlib import Path
 
+from zeroagents import store
 from zeroagents.paths import claude_dir, state_dir
 
 HOOK_EVENTS = [
@@ -52,7 +53,7 @@ def _save(path: Path, data: dict) -> None:
     backups.mkdir(parents=True, exist_ok=True)
     if path.exists():
         shutil.copy2(path, backups / f"settings-{time.strftime('%Y%m%d-%H%M%S')}.json")
-    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    store.write_atomic(path, json.dumps(data, indent=2, ensure_ascii=False) + "\n")
 
 
 def _strip_hooks(settings: dict) -> None:
@@ -71,6 +72,11 @@ def _strip_hooks(settings: dict) -> None:
 
 
 def install(notify: bool = True, statusline: bool = True) -> list[str]:
+    with store.locked(state_dir() / "install"):
+        return _install(notify, statusline)
+
+
+def _install(notify: bool, statusline: bool) -> list[str]:
     path = _settings_path()
     settings = _load(path)
     exe = executable()
@@ -92,7 +98,7 @@ def install(notify: bool = True, statusline: bool = True) -> list[str]:
         else:
             record = state_dir() / "install.json"
             record.parent.mkdir(parents=True, exist_ok=True)
-            record.write_text(json.dumps({"original_statusLine": current or None}, indent=2))
+            store.write_atomic(record, json.dumps({"original_statusLine": current or None}, indent=2))
             wrapped = f"{exe}{STATUS_MARK}"
             if current.get("command"):
                 wrapped += f" --chain {shlex.quote(current['command'])}"
@@ -105,6 +111,11 @@ def install(notify: bool = True, statusline: bool = True) -> list[str]:
 
 
 def uninstall() -> list[str]:
+    with store.locked(state_dir() / "install"):
+        return _uninstall()
+
+
+def _uninstall() -> list[str]:
     path = _settings_path()
     settings = _load(path)
     _strip_hooks(settings)

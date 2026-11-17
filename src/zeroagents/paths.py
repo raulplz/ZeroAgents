@@ -15,7 +15,7 @@ def state_dir() -> Path:
         return base / "ZeroAgents"
     if sys.platform == "darwin":
         return Path.home() / "Library" / "Application Support" / "ZeroAgents"
-    base = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local" / "state"))
+    base = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local" / "state")
     return base / "zeroagents"
 
 
@@ -26,4 +26,4 @@ def platform_dir(platform: str) -> Path:
 
 
 def claude_dir() -> Path:
-    return Path(os.environ.get("CLAUDE_CONFIG_DIR", Path.home() / ".claude"))
+    return Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")

@@ -87,8 +87,25 @@ class Ledger:
         self.background = set(data.get("bg", []))
         self.handed = set(data.get("handed", []))
 
-    def save(self) -> None:
-        store.write_snapshot(self.path, {"bg": sorted(self.background), "handed": sorted(self.handed)})
+    def _apply(self, change) -> None:
+        """Los hooks son asíncronos y pueden coincidir: se relee bajo bloqueo y
+        se aplica solo este cambio, para no pisar el de otro proceso."""
+        def edit(data: dict) -> None:
+            bg, handed = set(data.get("bg", [])), set(data.get("handed", []))
+            change(bg, handed)
+            data["bg"], data["handed"] = sorted(bg), sorted(handed)
+            self.background, self.handed = bg, handed
+
+        store.update_json(self.path, edit)
+
+    def add_background(self, aid: str) -> None:
+        self._apply(lambda bg, handed: bg.add(aid))
+
+    def drop_background(self, aid: str) -> None:
+        self._apply(lambda bg, handed: bg.discard(aid))
+
+    def add_handed(self, aid: str) -> None:
+        self._apply(lambda bg, handed: handed.add(aid))
 
 
 def message_from_hook(data: dict, ledger: Ledger, now: float | None = None) -> dict | None:
@@ -111,8 +128,7 @@ def message_from_hook(data: dict, ledger: Ledger, now: float | None = None) -> d
     elif event == "PreToolUse" and tool == "SubagentHandback":
         aid = data.get("agent_id")
         if aid:
-            ledger.handed.add(aid)
-            ledger.save()
+            ledger.add_handed(aid)
         msg = {"kind": "entrega", "de": data.get("agent_type") or "subagente", "para": MAIN,
                "texto": _text(ti.get("message")), "agent_id": aid, "via": "handback"}
 
@@ -121,8 +137,7 @@ def message_from_hook(data: dict, ledger: Ledger, now: float | None = None) -> d
         aid = resp.get("agentId")
         if resp.get("status") == "async_launched":
             if aid:
-                ledger.background.add(aid)
-                ledger.save()
+                ledger.add_background(aid)
             return None
         if aid and aid in ledger.handed:
             return None
@@ -135,8 +150,7 @@ def message_from_hook(data: dict, ledger: Ledger, now: float | None = None) -> d
         aid = data.get("agent_id")
         if not aid or aid not in ledger.background:
             return None
-        ledger.background.discard(aid)
-        ledger.save()
+        ledger.drop_background(aid)
         if aid in ledger.handed:
             return None
         msg = {"kind": "entrega", "de": data.get("agent_type") or "subagente", "para": MAIN,

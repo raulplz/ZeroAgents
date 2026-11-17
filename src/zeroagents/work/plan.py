@@ -6,6 +6,8 @@ import json
 import re
 from pathlib import Path
 
+from zeroagents import store
+
 PHASES = ("requisitos", "arquitectura", "implementacion", "qa", "transversal")
 PHASE_LABELS = {
     "requisitos": "1 · Requisitos",
@@ -159,7 +161,7 @@ def slugify(text: str) -> str:
 def save(directory: Path, data: dict) -> Path:
     path = directory / PLAN_FILE
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    store.write_atomic(path, json.dumps(data, ensure_ascii=False, indent=2) + "\n")
     return path
 
 

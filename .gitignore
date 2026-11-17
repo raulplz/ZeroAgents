@@ -12,3 +12,8 @@ NOTAS_DESARROLLO.md
 
 *.swp
 .DS_Store
+
+# GUI (Rust): compilados
+gui/target/
+gui/ui/dist/
+gui/src-tauri/gen/
