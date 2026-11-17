@@ -1,0 +1,3 @@
+# Toolchain de la GUI (gui/): `mise exec -- cargo …`
+[tools]
+rust = "stable"

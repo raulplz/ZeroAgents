@@ -1,0 +1,20 @@
+# Workspace de la app de escritorio de ZeroAgents (Tauri 2 + Leptos).
+#  - core:      lógica compartida (modelo, formato y lectores de Claude Code)
+#  - src-tauri: backend nativo (binario `zeroagents-gui`)
+#  - ui:        frontend Leptos (CSR, se compila a wasm con trunk)
+[workspace]
+resolver = "3"
+members = ["core", "src-tauri", "ui"]
+
+[workspace.package]
+version = "0.4.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/raulplz/ZeroAgents"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = "debuginfo"
+panic = "abort"

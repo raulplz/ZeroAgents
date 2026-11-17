@@ -241,7 +241,8 @@ def cmd_work_new(args) -> int:
         return 2
     directory = _project_dir(args.dir, args.name or prompt.split("\n")[0][:40])
     try:
-        result, report = create_project(prompt, directory, models, args.architect_model, args.architect_effort)
+        result, report = create_project(prompt, directory, models, args.architect_model, args.architect_effort,
+                                        launch_mode=args.permission_mode)
     except architect.ArchitectError as exc:
         print(f"✗ {exc}", file=sys.stderr)
         return 1
@@ -342,6 +343,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--models", help="modelos que puede usar el equipo, p. ej. haiku,sonnet,opus,fable")
     p.add_argument("--architect-model", default="opus", help="modelo del arquitecto (opus)")
     p.add_argument("--architect-effort", default="high", help="esfuerzo del arquitecto (high)")
+    p.add_argument("--permission-mode", choices=["default", "acceptEdits", "plan", "auto"],
+                   help="modo de permisos con el que arrancará el líder (se guarda en el proyecto)")
     p.set_defaults(func=cmd_work_new)
     wsub.add_parser("list", help="proyectos del modo Work").set_defaults(func=cmd_work_list)
     p = wsub.add_parser("show", help="equipo, tareas y progreso de un proyecto")

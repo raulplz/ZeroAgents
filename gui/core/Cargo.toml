@@ -1,0 +1,19 @@
+[package]
+name = "zeroagents-core"
+description = "Núcleo de ZeroAgents: modelo común y lectores de Claude Code (hooks, statusline, registro y transcripts)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+# `native` activa todo lo que toca el sistema (archivos, procesos, Hyprland).
+# El frontend wasm usa el crate sin ella: solo modelo y formato.
+default = ["native"]
+native = ["dep:chrono"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+chrono = { version = "0.4", optional = true, default-features = false, features = ["std"] }
+
+[dev-dependencies]

@@ -157,6 +157,21 @@ zeroagents install             # hooks + statusline en ~/.claude/settings.json (
 
 Para quitarlo: `zeroagents uninstall` (elimina los hooks y restaura la statusline original), y después `uv tool uninstall zeroagents` si quieres borrar también el comando.
 
+## Terminal, GUI o ambas
+
+ZeroAgents tiene dos interfaces sobre los mismos datos: la **terminal** (TUI en Python, la original) y una **GUI** de escritorio (Rust: Tauri 2 + Leptos, en `gui/`). Instalas una, la otra o las dos; si instalas las dos, **comparten rutas y formato** (`~/.local/state/zeroagents`) y no se corrompen ni se pisan: escrituras atómicas, bloqueo `flock` común, campos desconocidos conservados y migraciones con copia `.bak`. Detalles en [docs/datos.md](docs/datos.md).
+
+```bash
+./install.sh tui      # comando `zeroagents` (uv tool) y su lanzador
+./install.sh gui      # ~/.local/bin/zeroagents-gui y «ZeroAgents (GUI)» (compila si hace falta; --build fuerza)
+./install.sh ambas
+./uninstall.sh gui    # o tui: nunca toca los datos ni la otra interfaz
+```
+
+Todo va a `~/.local`, sin `sudo`. La GUI se compila con `mise exec -- cargo tauri build --no-bundle` (necesita Rust, `trunk` y `cargo-tauri`; ver `mise.toml`). Los hooks y la statusline de Claude Code los recoge el comando `zeroagents` (Python), así que `install.sh gui` lo instala si falta y `uninstall.sh tui` lo conserva mientras la GUI siga instalada. Conéctalo a Claude Code una vez con `zeroagents install`.
+
+En la GUI, **Modo Work → «Añadir proyecto»** tiene los mismos campos que el formulario de la terminal (prompt, carpeta, modelos, arquitecto y permisos; llama a `zeroagents work new`) y una segunda pestaña para registrar una carpeta que ya tiene plan.
+
 ## Cómo funciona
 
 ```
@@ -189,7 +204,7 @@ ZEROAGENTS_STATE_DIR=/ruta/temporal zeroagents list   # probar sin mezclar estad
 
 ## Estado
 
-**v0.3** · 33 pruebas automáticas (`uv run pytest -q`).
+**v0.3** · 38 pruebas de Python (`uv run pytest -q`) y 40 de Rust (`cd gui && cargo test --workspace`).
 
 - **Monitor de sesiones:** adaptador de Claude Code, panel TUI, `list`/`--json`, notificaciones de escritorio, saltar a la ventana del agente (Hyprland) e `install`/`uninstall`/`doctor`.
 - **Mensajes entre agentes** (v0.3): encargos, entregas y mensajes con su texto íntegro, en vivo en el panel (`m`) y por terminal (`messages -f`), con registro permanente por proyecto.
