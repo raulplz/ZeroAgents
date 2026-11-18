@@ -15,5 +15,6 @@ NOTAS_DESARROLLO.md
 
 # GUI (Rust): compilados
 gui/target/
+gui/.cargo/
 gui/ui/dist/
 gui/src-tauri/gen/

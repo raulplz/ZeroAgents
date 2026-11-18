@@ -30,19 +30,9 @@ pub fn now() -> f64 {
 pub fn apply_theme(theme: &Theme) {
     let Some(root) = document().document_element() else { return };
     let style = root.unchecked_ref::<web_sys::HtmlElement>().style();
-    for (name, value) in theme.colores.css_vars() {
-        let _ = style.set_property(name, value);
+    for (name, value) in theme.css_variables(&zeroagents_core::theme::css_map()) {
+        let _ = style.set_property(name, &value);
     }
-    let font = |custom: &Option<String>, var: &str, fallback: &str| match custom {
-        Some(f) => {
-            let _ = style.set_property(var, &format!("\"{f}\", {fallback}"));
-        }
-        None => {
-            let _ = style.remove_property(var);
-        }
-    };
-    font(&theme.fuentes.sans, "--sans", "\"Inter Tight\", system-ui, sans-serif");
-    font(&theme.fuentes.mono, "--mono", "\"JetBrainsMono Nerd Font\", monospace");
     let _ = root.set_attribute("data-modo", if theme.is_light() { "claro" } else { "oscuro" });
 }
 

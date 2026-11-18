@@ -5329,6 +5329,7 @@ dependencies = [
  "chrono",
  "serde",
  "serde_json",
+ "zerolayer-theme",
 ]
 
 [[package]]
@@ -5340,6 +5341,7 @@ dependencies = [
  "tauri",
  "tauri-build",
  "zeroagents-core",
+ "zerolayer-theme",
 ]
 
 [[package]]
@@ -5376,6 +5378,15 @@ dependencies = [
  "quote",
  "syn 3.0.10",
  "synstructure",
+]
+
+[[package]]
+name = "zerolayer-theme"
+version = "0.3.1"
+source = "git+https://github.com/raulplz/ZeroLayer?tag=v0.3.1#1a0b3fd05e50d410225550e90d8379310a5ddbdd"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

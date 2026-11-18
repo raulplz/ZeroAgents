@@ -218,7 +218,7 @@ fn Pie() -> impl IntoView {
         <div class="lateral-pie">
             <div>
                 "TEMA · "
-                <span class="glifo">{move || ctx.theme.with(|t| t.glifo.clone().unwrap_or_else(|| "◢".into()))}</span>
+                <span class="glifo">{move || ctx.theme.with(|t| t.glifo.clone())}</span>
                 <b>{move || ctx.theme.with(|t| t.nombre.to_uppercase())}</b>
             </div>
             <div>"AVISOS · " <b>{notifier}</b></div>

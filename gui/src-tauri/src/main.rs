@@ -18,7 +18,7 @@ use zeroagents_core::messages::{self, Message};
 use zeroagents_core::model::Board;
 use zeroagents_core::monitor::Monitor;
 use zeroagents_core::notify::{self, Notifier};
-use zeroagents_core::theme::{Theme, watch};
+use zeroagents_core::theme::Theme;
 use zeroagents_core::work::{self, NewProject, ProjectView};
 use zeroagents_core::{claude_code, focus, paths, store};
 
@@ -63,7 +63,7 @@ async fn focus_agent(pid: Option<u32>) -> Result<(), String> {
 
 #[tauri::command]
 fn theme() -> Theme {
-    watch::load()
+    Theme::load()
 }
 
 /// Mensajes entre agentes de las últimas `hours` horas (0 = todos).
@@ -189,7 +189,7 @@ async fn open_terminal(work: bool) -> Result<(), String> {
 fn background(handle: AppHandle, app: Arc<App>) {
     thread::spawn(move || {
         let mut notifier = Notifier::default();
-        let mut themes = watch::ThemeWatch::default();
+        let mut themes = zerolayer_theme::ThemeWatcher::new();
         let mut tick = 0u64;
         loop {
             let board = app.board();
