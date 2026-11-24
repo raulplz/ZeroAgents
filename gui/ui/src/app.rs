@@ -124,6 +124,17 @@ pub fn App() -> impl IntoView {
         if e.ctrl_key() || e.alt_key() || e.meta_key() {
             return;
         }
+        // Escribiendo en un campo (p. ej. la descripción de un proyecto): las teclas son texto.
+        let typing = web_sys::window()
+            .and_then(|w| w.document())
+            .and_then(|d| d.active_element())
+            .is_some_and(|el| {
+                matches!(el.tag_name().as_str(), "INPUT" | "TEXTAREA" | "SELECT")
+                    || el.get_attribute("contenteditable").is_some_and(|v| v != "false")
+            });
+        if typing {
+            return;
+        }
         let on_sessions = ctx.tab.get_untracked() == Tab::Sesiones;
         match e.key().as_str() {
             "j" | "ArrowDown" if on_sessions => ctx.move_selection(1),
